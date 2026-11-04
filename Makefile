@@ -39,4 +39,4 @@ reconcile:
 	$(PYTHON) -m financial_time_series.cli.reconcile $(ARGS)
 
 integration-test:
-	$(PYTHON) -m pytest -m integration
+	$(PYTHON) -m pytest -m integration --tb=line
