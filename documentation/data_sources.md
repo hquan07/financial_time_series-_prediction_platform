@@ -19,8 +19,8 @@ series' rights. References: [FRED observations API](https://fred.stlouisfed.org/
 
 For VIXCLS and DGS10, `verified_release_or_retrieval_v1` assigns
 `available_at` from a verified release timestamp when one exists. Otherwise
-it uses the UTC retrieval time as a conservative lower bound and records
-that policy, the retrieval time and vintage. This cannot establish
+it uses the UTC retrieval time as a conservative usable availability time and
+records that policy, the retrieval time and vintage. This cannot establish
 historical point-in-time availability for old observations retrieved today.
 Such rows remain EDA-only until point-in-time release/vintage evidence is
 available. A macro as-of join requires `available_at <= forecast_cutoff_at`.
