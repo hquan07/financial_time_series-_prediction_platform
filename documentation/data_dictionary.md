@@ -1,8 +1,9 @@
 # Data Contract v1
 
-This is the Phase 1 contract for later ingestion and dataset builders. It is
-documentation, not an implemented schema or an operational pipeline. Version
-names are immutable once data is published under them.
+This contract began in Phase 1. Phase 2 implements Bronze ingestion; Phase 3
+implements the market and macro Silver schemas, quality gates and publication.
+Feature and target contracts remain for later phases. Version names are
+immutable once data is published under them.
 
 ## Market sessions and raw prices
 
@@ -72,7 +73,8 @@ bronze/yahoo_finance/ticker={ticker}/interval=1d/run_id={ingestion_run_id}/paylo
 bronze/yahoo_finance/ticker={ticker}/interval=1d/run_id={ingestion_run_id}/manifest.json
 bronze/fred/series={series_id}/run_id={ingestion_run_id}/payload.json
 bronze/fred/series={series_id}/run_id={ingestion_run_id}/manifest.json
-silver/{dataset_name}/{dataset_version}/part-{part_id}.parquet
+silver/{dataset_name}/{dataset_version}/{partition}/part-00000.parquet
+silver/{dataset_name}/{dataset_version}/quality_report.json
 silver/{dataset_name}/{dataset_version}/manifest.json
 gold/{dataset_name}/{dataset_version}/part-{part_id}.parquet
 gold/{dataset_name}/{dataset_version}/manifest.json
