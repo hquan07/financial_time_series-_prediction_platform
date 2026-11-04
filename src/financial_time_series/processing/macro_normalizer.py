@@ -5,7 +5,11 @@ import math
 from datetime import date
 
 from financial_time_series.ingestion.models import Entity
-from financial_time_series.processing.bronze_reader import BronzeInput, utc_timestamp
+from financial_time_series.processing.bronze_reader import (
+    BronzeInput,
+    observation_bounds,
+    utc_timestamp,
+)
 from financial_time_series.processing.contracts import validate_macro
 from financial_time_series.processing.quality import QualityError
 
@@ -34,11 +38,7 @@ def normalize_macro(item: BronzeInput, entity: Entity) -> list[dict]:
             or int(document["count"]) != len(observations)
         ):
             raise QualityError("macro_invalid_pagination")
-        bounds = manifest["requested_observation_range"]
-        start, end = (
-            date.fromisoformat(bounds["start"]),
-            date.fromisoformat(bounds["end"]),
-        )
+        start, end = observation_bounds(manifest)
         rows = []
         previous = None
         for source in observations:

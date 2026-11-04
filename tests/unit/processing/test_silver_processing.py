@@ -96,3 +96,20 @@ def test_version_includes_every_input_and_cutoff():
     two = _version_input("macro_observations_v1", cutoff, [first, second], "test")
     assert dataset_version(one, cutoff) == dataset_version(one, cutoff)
     assert dataset_version(one, cutoff) != dataset_version(two, cutoff)
+
+
+def test_legacy_bronze_v1_request_bounds_are_explicitly_supported():
+    payload = (FIXTURES / "yahoo_aapl_download.csv").read_bytes()
+    item = bronze("yahoo_finance", "AAPL", payload, 4)
+    item.manifest.pop("requested_observation_range")
+    item.manifest["request_parameters"] = {"start": "2024-01-01", "end": "2024-01-05"}
+    assert len(normalize_market(item, resolve_entity("yahoo_finance", "AAPL"))) == 4
+    item.manifest["request_parameters"]["end_exclusive"] = True
+    with pytest.raises(QualityError, match="missing_observation_range"):
+        normalize_market(item, resolve_entity("yahoo_finance", "AAPL"))
+    macro = bronze(
+        "fred", "VIXCLS", (FIXTURES / "fred_vixcls_response.json").read_bytes(), 5
+    )
+    macro.manifest.pop("requested_observation_range")
+    macro.manifest["request_parameters"] = {"start": "2024-01-01", "end": "2024-01-05"}
+    assert len(normalize_macro(macro, resolve_entity("fred", "VIXCLS"))) == 5

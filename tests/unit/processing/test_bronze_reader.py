@@ -39,6 +39,7 @@ def fixture():
         "source_format": "csv_dataframe_export",
         "ingested_at": "2026-11-04T12:00:00+00:00",
         "source_available_at": None,
+        "requested_observation_range": {"start": "2024-01-01", "end": "2024-01-05"},
         "payload": {
             "format": "csv",
             "uri": uri,

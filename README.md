@@ -78,6 +78,9 @@ with the same cutoff and inputs verifies and returns an existing version. A
 broken successful Bronze run blocks publication. Fatal attempts leave a report
 under `quality/phase_03/` and do not publish a Silver manifest. `make
 silver-integration-test` uses isolated synthetic database and bucket resources.
+The reader accepts both Phase 2 Bronze v1 manifest shapes: explicit
+`requested_observation_range` and the earlier inclusive `start`/`end` request
+parameters. It verifies the range without changing Bronze objects.
 
 ## Architecture and scope
 

@@ -2,7 +2,7 @@
 
 import json
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from uuid import UUID
 
 from financial_time_series.ingestion.models import Entity
@@ -28,6 +28,25 @@ def utc_timestamp(value: str) -> datetime:
     if parsed.tzinfo is None or parsed.utcoffset() is None:
         raise QualityError("invalid_utc_timestamp")
     return parsed.astimezone(UTC)
+
+
+def observation_bounds(manifest: dict) -> tuple[date, date]:
+    try:
+        bounds = manifest.get("requested_observation_range")
+        if bounds is None:
+            parameters = manifest["request_parameters"]
+            if "end_exclusive" in parameters:
+                raise QualityError("missing_observation_range")
+            bounds = {"start": parameters["start"], "end": parameters["end"]}
+        start = date.fromisoformat(bounds["start"])
+        end = date.fromisoformat(bounds["end"])
+        if start > end:
+            raise QualityError("invalid_observation_range")
+        return start, end
+    except (KeyError, TypeError, ValueError) as error:
+        if isinstance(error, QualityError):
+            raise
+        raise QualityError("invalid_observation_range") from error
 
 
 class BronzeReader:
@@ -74,6 +93,7 @@ class BronzeReader:
             ):
                 raise QualityError("bronze_metadata_mismatch")
             utc_timestamp(manifest["ingested_at"])
+            observation_bounds(manifest)
             if manifest["source_available_at"] is not None:
                 raise QualityError("unverified_source_availability")
         except (KeyError, TypeError, ValueError) as error:

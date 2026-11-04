@@ -7,7 +7,11 @@ from decimal import Decimal, InvalidOperation
 from io import StringIO
 
 from financial_time_series.ingestion.models import Entity
-from financial_time_series.processing.bronze_reader import BronzeInput, utc_timestamp
+from financial_time_series.processing.bronze_reader import (
+    BronzeInput,
+    observation_bounds,
+    utc_timestamp,
+)
 from financial_time_series.processing.calendar import require_session
 from financial_time_series.processing.contracts import validate_market
 from financial_time_series.processing.quality import QualityError
@@ -50,11 +54,7 @@ def normalize_market(item: BronzeInput, entity: Entity) -> list[dict]:
         source_available_at = (
             utc_timestamp(source_available) if source_available is not None else None
         )
-        bounds = item.manifest["requested_observation_range"]
-        start, end = (
-            date.fromisoformat(bounds["start"]),
-            date.fromisoformat(bounds["end"]),
-        )
+        start, end = observation_bounds(item.manifest)
         for source in reader:
             if None in source or any(value is None for value in source.values()):
                 raise QualityError("market_invalid_columns")
