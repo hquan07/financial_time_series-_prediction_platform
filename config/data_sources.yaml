@@ -1,0 +1,16 @@
+schema_version: 1
+market:
+  provider: yahoo_finance
+  library: yfinance
+  interval: 1d
+  auto_adjust: false
+  retain_raw_response: true
+macro:
+  provider: fred
+  series:
+    - id: VIXCLS
+      availability_policy: verified_release_or_retrieval_v1
+    - id: DGS10
+      availability_policy: verified_release_or_retrieval_v1
+  require_available_at: true
+  require_vintage_for_point_in_time_claim: true

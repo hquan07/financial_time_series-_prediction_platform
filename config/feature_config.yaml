@@ -1,0 +1,9 @@
+schema_version: 1
+feature_contract_version: features_v1
+forecast_cutoff: after_validated_session_close
+macro_join: available_at_lte_forecast_cutoff_at
+price_basis: raw_ohlcv_with_adj_close
+target_contract_version: adj_open_to_close_v1
+target:
+  entry: next_session_adjusted_open
+  exit: next_session_adjusted_close

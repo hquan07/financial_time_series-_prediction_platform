@@ -1,0 +1,3 @@
+session_date,ticker,exchange,open,high,low,close,adj_close,volume
+2024-01-02,AAPL,XNAS,100.00,98.00,99.00,101.00,100.50,-1
+2024-01-02,AAPL,XNAS,100.00,102.00,99.00,101.00,100.50,1000000

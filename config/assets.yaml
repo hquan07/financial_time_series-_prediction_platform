@@ -1,0 +1,11 @@
+schema_version: 1
+market:
+  frequency: 1d
+  assets:
+    - {ticker: AAPL, exchange: XNAS, timezone: America/New_York}
+    - {ticker: MSFT, exchange: XNAS, timezone: America/New_York}
+    - {ticker: GOOGL, exchange: XNAS, timezone: America/New_York}
+    - {ticker: AMZN, exchange: XNAS, timezone: America/New_York}
+    - {ticker: NVDA, exchange: XNAS, timezone: America/New_York}
+    - {ticker: JPM, exchange: XNYS, timezone: America/New_York}
+    - {ticker: TSLA, exchange: XNAS, timezone: America/New_York}

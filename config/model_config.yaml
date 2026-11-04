@@ -1,0 +1,5 @@
+schema_version: 1
+task: next_session_return_regression
+target_contract_version: adj_open_to_close_v1
+validation: chronological_walk_forward
+deployment: research_only
