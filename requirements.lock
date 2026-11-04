@@ -1,6 +1,8 @@
 # Resolved on Python 3.12 (2026-11-04) with pip freeze --exclude-editable.
 # Used as pip constraints by Makefile; update only after reviewing upgrades.
 annotated-types==0.8.0
+argon2-cffi==25.1.0
+argon2-cffi-bindings==26.1.0
 beautifulsoup4==4.15.0
 certifi==2026.10.23
 cffi==2.1.1
@@ -10,6 +12,7 @@ curl_cffi==0.17.0
 frozendict==2.5.1
 idna==3.20
 iniconfig==2.3.1
+minio==7.2.20
 multitasking==0.0.13
 mypy_extensions==1.2.0
 numpy==2.5.4
@@ -20,18 +23,24 @@ peewee==4.5.3
 platformdirs==4.14.3
 pluggy==1.7.0
 protobuf==7.36.2
+psycopg==3.3.8
+psycopg-binary==3.3.8
 pycparser==3.12
+pycryptodome==4.3.0
 pydantic==2.14.2
+pydantic-settings==2.16.2
 pydantic_core==2.50.2
 Pygments==2.21.0
 pytest==9.2.0
 pytest-cov==7.1.0
 python-dateutil==4.0.0
+python-dotenv==1.2.4
 pytz==2026.6
 PyYAML==6.0.3
 requests==2.34.2
 ruff==0.17.3
 soupsieve==4.0
+tenacity==9.2.1
 typeguard==4.6.0
 typing-inspect==0.9.0
 typing-inspection==0.4.4
