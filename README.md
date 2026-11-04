@@ -26,5 +26,7 @@ reserve boundaries for ingestion, storage, processing, features, models,
 evaluation, training, serving and monitoring. Their implementations belong to
 later phases. See [data dictionary](documentation/data_dictionary.md) and
 [source policy](documentation/data_sources.md).
+Branch conventions for each phase are in
+[development workflow](documentation/development_workflow.md).
 
 Research output is not investment advice and does not guarantee returns.
