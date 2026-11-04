@@ -48,7 +48,9 @@ claiming any feature has been built.
 One macro observation has `series_id`, `observation_date` (`DATE`), `value`
 (nullable finite decimal), `retrieved_at` (UTC `TIMESTAMPTZ`), source
 `realtime_start`/`realtime_end` or vintage identifier when available, and
-`available_at` (UTC `TIMESTAMPTZ`). A FRED `"."` value is missing, not zero.
+`available_at` (UTC `TIMESTAMPTZ`). `source_available_at` is a separate,
+nullable verified source release timestamp; it must never be filled from the
+retrieval time. A FRED `"."` value is missing, not zero.
 The source record and policy version used to assign `available_at` must be
 retained. Observation date alone never proves forecast-time availability.
 If exact release evidence or a defensible conservative retrieval timestamp
@@ -56,23 +58,31 @@ is unavailable, exclude the observation from point-in-time features.
 
 ## Bronze, Silver, Gold and lineage
 
-Bronze is immutable response evidence. Each run has `ingestion_run_id`
+Bronze is immutable source evidence. Each run has `ingestion_run_id`
 (UUID), provider, request parameters (with credentials redacted),
 `requested_at`, `ingested_at`, response schema version, object URI, SHA-256
-of stored bytes, byte count and row count. Store a manifest beside the raw
-object and publish it only after both objects are durable. Never overwrite a
+of stored bytes, byte count and row count. Publish the manifest beside the
+payload only after the payload is durable and verified. Never overwrite a
 run ID or reuse a URI for different bytes.
 
-Proposed object keys, all relative to the configured storage root:
+Bronze object keys, relative to the configured bucket, are source-specific:
 
 ```text
-bronze/{provider}/{entity}/{ingestion_run_id}/response.json
-bronze/{provider}/{entity}/{ingestion_run_id}/manifest.json
+bronze/yahoo_finance/ticker={ticker}/interval=1d/run_id={ingestion_run_id}/payload.csv
+bronze/yahoo_finance/ticker={ticker}/interval=1d/run_id={ingestion_run_id}/manifest.json
+bronze/fred/series={series_id}/run_id={ingestion_run_id}/payload.json
+bronze/fred/series={series_id}/run_id={ingestion_run_id}/manifest.json
 silver/{dataset_name}/{dataset_version}/part-{part_id}.parquet
 silver/{dataset_name}/{dataset_version}/manifest.json
 gold/{dataset_name}/{dataset_version}/part-{part_id}.parquet
 gold/{dataset_name}/{dataset_version}/manifest.json
 ```
+
+The Yahoo payload is a deterministic CSV export of the `yfinance` DataFrame,
+not upstream HTTP response bytes. The FRED payload is the received JSON body.
+Neither representation should claim a historical release time merely because
+it was retrieved at a later date. The source format and request parameters
+belong in each Bronze manifest.
 
 Each Silver/Gold manifest carries a unique immutable `dataset_version`,
 sorted `source_run_ids`, parent dataset versions, `feature_contract_version`,

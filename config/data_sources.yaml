@@ -4,9 +4,16 @@ market:
   library: yfinance
   interval: 1d
   auto_adjust: false
-  retain_raw_response: true
+  bronze_payload_format: csv_dataframe_export
+  initial_start_date: '2024-01-01'
+  incremental_overlap_calendar_days: 14
+  max_request_span_calendar_days: 366
 macro:
   provider: fred
+  bronze_payload_format: json_http_body
+  initial_start_date: '2024-01-01'
+  incremental_overlap_calendar_days: 7
+  max_request_span_calendar_days: 366
   series:
     - id: VIXCLS
       availability_policy: verified_release_or_retrieval_v1
