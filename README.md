@@ -74,10 +74,10 @@ make infra-down
 Omit `BUILD_CUTOFF_AT` to use the current UTC instant; the CLI prints the exact
 cutoff and resulting version. Pass `ARGS='--source-run-id UUID --source-run-id
 UUID'` to build from a bounded, explicit list of eligible runs. A repeat build
-with the same cutoff and inputs verifies and returns an existing version. A
-broken successful Bronze run blocks publication. Fatal attempts leave a report
-under `quality/phase_03/` and do not publish a Silver manifest. `make
-silver-integration-test` uses isolated synthetic database and bucket resources.
+with the same cutoff, inputs and code revision verifies and returns an existing
+version. A broken successful Bronze run blocks publication. Fatal attempts
+leave a report under `quality/phase_03/` and do not publish a Silver manifest.
+`make silver-integration-test` uses isolated synthetic database and bucket resources.
 The reader accepts both Phase 2 Bronze v1 manifest shapes: explicit
 `requested_observation_range` and the earlier inclusive `start`/`end` request
 parameters. It verifies the range without changing Bronze objects.
