@@ -21,6 +21,8 @@ dependencies = [
     "pydantic-settings>=2.7,<3",
     "tenacity>=9,<10",
     "curl_cffi>=0.17,<1",
+    "pyarrow==26.0.1",
+    "exchange-calendars==4.13.2",
 ]
 
 [project.optional-dependencies]

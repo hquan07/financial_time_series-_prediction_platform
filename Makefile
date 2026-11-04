@@ -1,6 +1,6 @@
 PYTHON := .venv/bin/python
 
-.PHONY: setup format-check lint test infra-up infra-down migrate ingest backfill reconcile integration-test
+.PHONY: setup format-check lint test infra-up infra-down migrate ingest backfill reconcile integration-test build-silver silver-integration-test
 
 COMPOSE := docker compose --project-name financial-ts-phase2 --env-file .env -f infrastructure/docker-compose.yml
 
@@ -40,3 +40,9 @@ reconcile:
 
 integration-test:
 	$(PYTHON) -m pytest -m integration --tb=line
+
+build-silver:
+	$(PYTHON) -m financial_time_series.cli.build_silver --dataset $(DATASET) $(if $(BUILD_CUTOFF_AT),--build-cutoff-at $(BUILD_CUTOFF_AT),) $(ARGS)
+
+silver-integration-test:
+	$(PYTHON) -m pytest tests/integration/test_bronze_to_silver.py --tb=line

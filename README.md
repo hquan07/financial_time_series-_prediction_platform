@@ -1,9 +1,11 @@
 # Financial Time Series Prediction Platform
 
 Research and paper-trading foundation for daily market and macroeconomic data.
-Phase 2 adds explicit batch ingestion of Yahoo daily OHLCV and FRED observations
-into immutable MinIO Bronze objects, with PostgreSQL run audit and watermarks.
-Silver/Gold processing, models and trading remain later-phase work.
+Phase 2 ingests Yahoo daily OHLCV and FRED observations into immutable MinIO
+Bronze objects with PostgreSQL run audit and watermarks. Phase 3 validates
+successful Bronze runs and publishes versioned Parquet Silver datasets with
+quality reports and PostgreSQL lineage. Gold processing, models and trading
+remain later-phase work.
 
 ## Local setup
 
@@ -53,6 +55,29 @@ The local MinIO image is built from pinned upstream source by
 `infrastructure/minio/Dockerfile`; see [infrastructure notes](infrastructure/README.md)
 for image availability and setup. Integration tests use a unique temporary
 database and bucket, and clean up only those test resources.
+
+## Phase 3 local Silver builds
+
+Phase 3 reads successful Bronze runs already stored in the project bucket. It
+does not call Yahoo or FRED. Run builds from a clean Git revision after applying
+the additive migration:
+
+```bash
+make infra-up
+make migrate
+make integration-test
+make build-silver DATASET=market BUILD_CUTOFF_AT=2026-11-04T12:00:00Z
+make build-silver DATASET=macro BUILD_CUTOFF_AT=2026-11-04T12:00:00Z
+make infra-down
+```
+
+Omit `BUILD_CUTOFF_AT` to use the current UTC instant; the CLI prints the exact
+cutoff and resulting version. Pass `ARGS='--source-run-id UUID --source-run-id
+UUID'` to build from a bounded, explicit list of eligible runs. A repeat build
+with the same cutoff and inputs verifies and returns an existing version. A
+broken successful Bronze run blocks publication. Fatal attempts leave a report
+under `quality/phase_03/` and do not publish a Silver manifest. `make
+silver-integration-test` uses isolated synthetic database and bucket resources.
 
 ## Architecture and scope
 

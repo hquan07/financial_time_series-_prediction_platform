@@ -7,6 +7,7 @@ from datetime import UTC, date, datetime, timedelta
 from uuid import UUID
 
 import psycopg
+from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
 from financial_time_series.ingestion.models import Entity
@@ -16,6 +17,11 @@ from financial_time_series.settings import Settings
 
 def lock_key(entity: Entity) -> int:
     raw = f"{entity.source}\0{entity.key}\0{entity.interval}".encode()
+    return int.from_bytes(hashlib.sha256(raw).digest()[:8], "big", signed=True)
+
+
+def silver_lock_key(dataset_name: str) -> int:
+    raw = f"silver\0{dataset_name}".encode()
     return int.from_bytes(hashlib.sha256(raw).digest()[:8], "big", signed=True)
 
 
@@ -48,6 +54,196 @@ class MetadataStore:
                     connection.execute("SELECT pg_advisory_unlock(%s)", (key,))
                 finally:
                     connection.close()
+
+    @contextmanager
+    def dataset_lock(self, dataset_name: str, timeout_seconds: float = 10):
+        connection = self._connect(autocommit=True)
+        key = silver_lock_key(dataset_name)
+        deadline = time.monotonic() + timeout_seconds
+        try:
+            while not connection.execute(
+                "SELECT pg_try_advisory_lock(%s)", (key,)
+            ).fetchone()[0]:
+                if time.monotonic() >= deadline:
+                    raise TimeoutError("dataset advisory lock wait expired")
+                time.sleep(0.1)
+            yield
+        finally:
+            if not connection.closed:
+                try:
+                    connection.execute("SELECT pg_advisory_unlock(%s)", (key,))
+                finally:
+                    connection.close()
+
+    def silver_candidates(self, source: str, keys: list[str], cutoff: datetime):
+        with self._connect() as connection:
+            with connection.cursor(row_factory=dict_row) as cursor:
+                cursor.execute(
+                    """SELECT ingestion_run_id, source_name, entity_key,
+                              interval_name, status, completed_at, payload_uri,
+                              sha256, byte_count, row_count, schema_version
+                       FROM ingestion_runs
+                       WHERE source_name=%s AND entity_key=ANY(%s)
+                         AND interval_name='1d' AND status='success'
+                         AND completed_at<=%s
+                       ORDER BY ingestion_run_id""",
+                    (source, keys, cutoff),
+                )
+                return cursor.fetchall()
+
+    def silver_run_statuses(self, source: str, keys: list[str]) -> list[dict]:
+        with self._connect() as connection:
+            with connection.cursor(row_factory=dict_row) as cursor:
+                cursor.execute(
+                    """SELECT ingestion_run_id, status, completed_at
+                       FROM ingestion_runs WHERE source_name=%s
+                         AND entity_key=ANY(%s) AND interval_name='1d'""",
+                    (source, keys),
+                )
+                return cursor.fetchall()
+
+    def publication(self, dataset_name: str, version: str) -> dict | None:
+        with self._connect() as connection:
+            with connection.cursor(row_factory=dict_row) as cursor:
+                cursor.execute(
+                    """SELECT dataset_id, manifest_uri, manifest_sha256,
+                              row_count, build_cutoff_at
+                       FROM dataset_versions
+                       WHERE layer='silver' AND dataset_name=%s
+                         AND dataset_version=%s""",
+                    (dataset_name, version),
+                )
+                return cursor.fetchone()
+
+    def publication_sources(self, dataset_id: UUID) -> list[dict]:
+        with self._connect() as connection:
+            with connection.cursor(row_factory=dict_row) as cursor:
+                cursor.execute(
+                    """SELECT source_run_id, input_row_count, output_row_count
+                       FROM dataset_source_runs WHERE dataset_id=%s
+                       ORDER BY ordinal""",
+                    (dataset_id,),
+                )
+                return cursor.fetchall()
+
+    def start_quality(
+        self, quality_id: UUID, dataset_name: str, cutoff: datetime, diagnostics: dict
+    ) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                """INSERT INTO quality_runs
+                   (quality_run_id,dataset_name,build_cutoff_at,rule_version,
+                    status,diagnostics)
+                   VALUES (%s,%s,%s,'silver_quality_v1','pending',%s)""",
+                (quality_id, dataset_name, cutoff, Jsonb(diagnostics)),
+            )
+
+    def fail_quality(
+        self,
+        quality_id: UUID,
+        report_uri: str | None,
+        report_sha: str | None,
+        warning_count: int,
+        failure_summary: str,
+    ) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                """UPDATE quality_runs SET status='failed', fatal_count=1,
+                   warning_count=%s, report_uri=%s, report_sha256=%s,
+                   failure_summary=%s, completed_at=now()
+                   WHERE quality_run_id=%s AND status='pending'""",
+                (warning_count, report_uri, report_sha, failure_summary, quality_id),
+            )
+
+    def complete_publication(
+        self,
+        *,
+        dataset_id: UUID,
+        quality_id: UUID,
+        dataset_name: str,
+        version: str,
+        cutoff: datetime,
+        manifest_uri: str,
+        manifest_sha: str,
+        code_revision: str,
+        row_count: int,
+        source_counts: list[tuple[UUID, int, int]],
+        report_uri: str,
+        report_sha: str,
+        warning_count: int,
+    ) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                """INSERT INTO dataset_versions
+                   (dataset_id,layer,dataset_name,dataset_version,build_cutoff_at,
+                    manifest_uri,manifest_sha256,code_revision,contract_version,
+                    schema_version,row_count,status)
+                   VALUES (%s,'silver',%s,%s,%s,%s,%s,%s,'data_contract_v1',
+                           %s,%s,'success')""",
+                (
+                    dataset_id,
+                    dataset_name,
+                    version,
+                    cutoff,
+                    manifest_uri,
+                    manifest_sha,
+                    code_revision,
+                    dataset_name,
+                    row_count,
+                ),
+            )
+            for ordinal, (run_id, input_count, output_count) in enumerate(
+                source_counts
+            ):
+                connection.execute(
+                    """INSERT INTO dataset_source_runs
+                       (dataset_id,source_run_id,ordinal,input_row_count,
+                        output_row_count) VALUES (%s,%s,%s,%s,%s)""",
+                    (dataset_id, run_id, ordinal, input_count, output_count),
+                )
+            changed = connection.execute(
+                """UPDATE quality_runs SET status='success', dataset_version=%s,
+                   dataset_id=%s, warning_count=%s, report_uri=%s,
+                   report_sha256=%s, completed_at=now()
+                   WHERE quality_run_id=%s AND status='pending'""",
+                (
+                    version,
+                    dataset_id,
+                    warning_count,
+                    report_uri,
+                    report_sha,
+                    quality_id,
+                ),
+            )
+            if changed.rowcount != 1:
+                raise RuntimeError("quality run is no longer pending")
+
+    def reuse_publication(
+        self,
+        quality_id: UUID,
+        dataset_id: UUID,
+        version: str,
+        report_uri: str,
+        report_sha: str,
+        warning_count: int,
+    ) -> None:
+        with self._connect() as connection:
+            changed = connection.execute(
+                """UPDATE quality_runs SET status='success', dataset_version=%s,
+                   dataset_id=%s, warning_count=%s, report_uri=%s,
+                   report_sha256=%s, completed_at=now()
+                   WHERE quality_run_id=%s AND status='pending'""",
+                (
+                    version,
+                    dataset_id,
+                    warning_count,
+                    report_uri,
+                    report_sha,
+                    quality_id,
+                ),
+            )
+            if changed.rowcount != 1:
+                raise RuntimeError("quality run is no longer pending")
 
     def watermark(self, entity: Entity) -> date | None:
         with self._connect() as connection:
