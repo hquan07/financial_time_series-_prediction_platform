@@ -136,7 +136,8 @@ def test_three_sources_publish_and_same_range_does_not_move_watermark(
         assert "api_key" not in json.dumps(manifest)
         with psycopg.connect(**settings.postgres_kwargs()) as connection:
             request_parameters = connection.execute(
-                "SELECT request_parameters FROM ingestion_runs WHERE ingestion_run_id=%s",
+                """SELECT request_parameters FROM ingestion_runs
+                   WHERE ingestion_run_id=%s""",
                 (run_id,),
             ).fetchone()[0]
         assert request_parameters == manifest["request_parameters"]
