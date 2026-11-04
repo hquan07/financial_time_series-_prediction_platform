@@ -24,6 +24,11 @@ that policy, the retrieval time and vintage. This cannot establish
 historical point-in-time availability for old observations retrieved today.
 Such rows remain EDA-only until point-in-time release/vintage evidence is
 available. A macro as-of join requires `available_at <= forecast_cutoff_at`.
+The optional `source_available_at` field holds only a separately verified
+source release timestamp; a retrieval timestamp must not be copied into it.
+In Bronze, `yfinance` daily rows are exported as CSV from a DataFrame, while
+FRED's received JSON body is stored as JSON. The source format is recorded in
+the manifest so neither is mistaken for a different kind of raw response.
 
 ## Manual provider snapshot, 2026-11-04
 
