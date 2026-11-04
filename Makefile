@@ -1,6 +1,8 @@
 PYTHON := .venv/bin/python
 
-.PHONY: setup format-check lint test
+.PHONY: setup format-check lint test infra-up infra-down migrate ingest backfill reconcile integration-test build-silver silver-integration-test
+
+COMPOSE := docker compose --project-name financial-ts-phase2 --env-file .env -f infrastructure/docker-compose.yml
 
 setup:
 	python3.12 -m venv .venv
@@ -14,4 +16,33 @@ lint:
 	$(PYTHON) -m ruff check .
 
 test:
-	$(PYTHON) -m pytest
+	$(PYTHON) -m pytest -m 'not integration'
+
+infra-up:
+	$(COMPOSE) build minio
+	$(COMPOSE) up -d --wait postgres minio
+	$(COMPOSE) run --rm minio-init
+
+infra-down:
+	$(COMPOSE) down
+
+migrate:
+	$(PYTHON) scripts/apply_migrations.py
+
+ingest:
+	$(PYTHON) -m financial_time_series.cli.ingest $(ARGS)
+
+backfill:
+	$(PYTHON) -m financial_time_series.cli.backfill $(ARGS)
+
+reconcile:
+	$(PYTHON) -m financial_time_series.cli.reconcile $(ARGS)
+
+integration-test:
+	$(PYTHON) -m pytest -m integration --tb=line
+
+build-silver:
+	$(PYTHON) -m financial_time_series.cli.build_silver --dataset $(DATASET) $(if $(BUILD_CUTOFF_AT),--build-cutoff-at $(BUILD_CUTOFF_AT),) $(ARGS)
+
+silver-integration-test:
+	$(PYTHON) -m pytest tests/integration/test_bronze_to_silver.py --tb=line
