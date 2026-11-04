@@ -16,6 +16,11 @@ dependencies = [
     "pandera>=0.20,<1",
     "pydantic>=2.9,<3",
     "PyYAML>=6,<7",
+    "minio>=7.2,<8",
+    "psycopg[binary]>=3.2,<4",
+    "pydantic-settings>=2.7,<3",
+    "tenacity>=9,<10",
+    "curl_cffi>=0.17,<1",
 ]
 
 [project.optional-dependencies]
@@ -26,6 +31,7 @@ packages = ["src/financial_time_series"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["integration: requires local Phase 2 MinIO and PostgreSQL services"]
 
 [tool.ruff]
 target-version = "py312"
