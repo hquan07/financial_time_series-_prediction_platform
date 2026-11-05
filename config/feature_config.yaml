@@ -7,3 +7,20 @@ target_contract_version: adj_open_to_close_v1
 target:
   entry: next_session_adjusted_open
   exit: next_session_adjusted_close
+windows:
+  return: [1, 5]
+  sma: [5, 20]
+  ema: [12, 26]
+  rsi: 14
+  atr: 14
+  statistics: [5, 20]
+  volume: 20
+  macd_signal: 9
+ema_adjust: false
+rolling_ddof: 1
+readiness_tier: price_only_core_v1
+outlier_warnings:
+  abs_daily_return: 0.25
+  abs_overnight_gap: 0.20
+  abs_volume_zscore: 8.0
+  atr_over_close: 0.20

@@ -1,5 +1,8 @@
 # Data Contract v1
 
+Phase 4 Gold schemas, feature readiness and target behavior are specified in
+[feature_contracts.md](feature_contracts.md).
+
 This contract began in Phase 1. Phase 2 implements Bronze ingestion; Phase 3
 implements the market and macro Silver schemas, quality gates and publication.
 Feature and target contracts remain for later phases. Version names are
