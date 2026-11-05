@@ -125,6 +125,7 @@ def _features_for_asset(group: pd.DataFrame) -> pd.DataFrame:
         calendar = calendar_for(row.exchange)
         close_at = calendar.session_close(row.session_date.isoformat()).to_pydatetime()
         group.at[index, "forecast_cutoff_at"] = close_at
+        group.at[index, "session_close_at"] = close_at
         if pd.notna(row.target_session):
             expected = calendar.next_session(row.session_date.isoformat()).date()
             if row.target_session != expected:
@@ -166,6 +167,7 @@ def build_rows(
         previous = {"VIXCLS": None, "DGS10": None}
         for _, row in frame.iterrows():
             result = row.to_dict()
+            result["market_retrieved_at"] = result["ingested_at"]
             reasons = []
             for name in PRICE_FEATURES:
                 value = result[name]
@@ -198,14 +200,17 @@ def build_rows(
                         chosen.observation_date
                     )
                     if level is not None and previous[series] is not None:
-                        last_date, last_value = previous[series]
+                        last_date, last_run, last_value = previous[series]
                         change = (
                             0.0
-                            if last_date == chosen.observation_date
+                            if (last_date, last_run)
+                            == (chosen.observation_date, chosen.source_run_id)
                             else level - last_value
                         )
                     previous[series] = (
-                        None if level is None else (chosen.observation_date, level)
+                        None
+                        if level is None
+                        else (chosen.observation_date, chosen.source_run_id, level)
                     )
                 result[f"{prefix}_level"] = level
                 result[f"{prefix}_change"] = change

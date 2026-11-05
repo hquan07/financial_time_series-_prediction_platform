@@ -114,6 +114,11 @@ class GoldService:
             parents = [(market, "market_input"), (macro, "macro_input")]
             if dataset == "features":
                 rows, _ = build_rows(market_rows, macro_rows)
+                for row in rows:
+                    row["market_dataset_version"] = market_version
+                    row["macro_dataset_version"] = macro_version
+                    row["feature_contract_version"] = "features_v1"
+                    row["code_revision"] = revision
             else:
                 feature_parent, feature_rows = self._parent(
                     connection, "gold", NAMES["features"], features_version
@@ -132,6 +137,9 @@ class GoldService:
                     raise QualityError("feature_parent_inputs_mismatch")
                 parents = [(feature_parent, "feature_input"), (market, "label_input")]
                 rows = build_training_rows(feature_rows, market_rows)
+                for row in rows:
+                    row["feature_dataset_version"] = features_version
+                    row["target_contract_version"] = "adj_open_to_close_v1"
             if not rows:
                 raise QualityError("empty_gold_dataset")
             version_input = {
