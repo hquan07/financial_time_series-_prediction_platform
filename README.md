@@ -4,8 +4,9 @@ Research and paper-trading foundation for daily market and macroeconomic data.
 Phase 2 ingests Yahoo daily OHLCV and FRED observations into immutable MinIO
 Bronze objects with PostgreSQL run audit and watermarks. Phase 3 validates
 successful Bronze runs and publishes versioned Parquet Silver datasets with
-quality reports and PostgreSQL lineage. Gold processing, models and trading
-remain later-phase work.
+quality reports and PostgreSQL lineage. Phase 4 builds versioned Gold features
+and next-session labels from explicit Silver versions, with notebook EDA.
+Models and trading remain later-phase work.
 
 ## Local setup
 
@@ -82,12 +83,33 @@ The reader accepts both Phase 2 Bronze v1 manifest shapes: explicit
 `requested_observation_range` and the earlier inclusive `start`/`end` request
 parameters. It verifies the range without changing Bronze objects.
 
+## Phase 4 Gold and EDA
+
+Build from a clean Git revision and explicitly published parent versions:
+
+```bash
+make infra-up
+make migrate
+make build-gold DATASET=features MARKET_VERSION=<market-silver-version> MACRO_VERSION=<macro-silver-version> BUILD_CUTOFF_AT=<utc-timestamp>
+make build-gold DATASET=training MARKET_VERSION=<market-silver-version> MACRO_VERSION=<macro-silver-version> FEATURES_VERSION=<features-gold-version> BUILD_CUTOFF_AT=<utc-timestamp>
+make notebook-check
+make eda ARGS='--dataset-name market_features_v1 --dataset-version <features-gold-version>'
+make infra-down
+```
+
+Gold reads and verifies published manifest and Parquet checksums. Repeating an
+identical build verifies and reuses its version. EDA JSON and PNG reports go
+to ignored `artifacts/eda/`; notebooks execute offline with synthetic data in
+`make notebook-check`. For real EDA, select the exact published Gold version.
+Historical market and macro backfills retain explicit point-in-time readiness
+flags. See [feature contracts](documentation/feature_contracts.md).
+
 ## Architecture and scope
 
 The intended pipeline has Bronze source snapshots, Silver validated records,
 and Gold point-in-time feature and target datasets. The package directories
-reserve boundaries for processing, features, models, evaluation, training,
-serving and monitoring. Their implementations belong to later phases. See
+reserve boundaries for models, evaluation, training, serving and monitoring.
+Their implementations belong to later phases. See
 [data dictionary](documentation/data_dictionary.md) and
 [source policy](documentation/data_sources.md).
 Branch conventions for each phase are in

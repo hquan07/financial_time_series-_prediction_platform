@@ -17,6 +17,7 @@ from financial_time_series.features.compute import (
     MACRO_FEATURES,
     PRICE_FEATURES,
     build_rows,
+    build_training_rows,
 )
 from financial_time_series.ingestion.service import code_revision
 from financial_time_series.processing.quality import QualityError, json_bytes, sha256
@@ -114,7 +115,7 @@ class GoldService:
             if dataset == "features":
                 rows, _ = build_rows(market_rows, macro_rows)
             else:
-                feature_parent, _ = self._parent(
+                feature_parent, feature_rows = self._parent(
                     connection, "gold", NAMES["features"], features_version
                 )
                 feature_manifest = __import__("json").loads(
@@ -130,7 +131,7 @@ class GoldService:
                 ]:
                     raise QualityError("feature_parent_inputs_mismatch")
                 parents = [(feature_parent, "feature_input"), (market, "label_input")]
-                _, rows = build_rows(market_rows, macro_rows)
+                rows = build_training_rows(feature_rows, market_rows)
             if not rows:
                 raise QualityError("empty_gold_dataset")
             version_input = {

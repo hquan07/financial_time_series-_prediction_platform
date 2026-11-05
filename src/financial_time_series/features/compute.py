@@ -244,3 +244,40 @@ def build_rows(
                     }
                 )
     return features, labels
+
+
+def build_training_rows(
+    feature_rows: list[dict], market_rows: list[dict]
+) -> list[dict]:
+    market = {
+        (row["ticker"], row["exchange"], row["session_date"]): row
+        for row in market_rows
+    }
+    if len(market) != len(market_rows):
+        raise QualityError("duplicate_market_session")
+    labels = []
+    for feature in feature_rows:
+        if not feature["price_only_ready"]:
+            continue
+        session = feature["session_date"]
+        calendar = calendar_for(feature["exchange"])
+        next_session = calendar.next_session(session.isoformat()).date()
+        next_row = market.get((feature["ticker"], feature["exchange"], next_session))
+        if next_row is None:
+            continue
+        if min(next_row["open"], next_row["close"], next_row["adj_close"]) <= 0:
+            raise QualityError("invalid_target_price")
+        adjusted_open = next_row["open"] * next_row["adj_close"] / next_row["close"]
+        target = next_row["adj_close"] / adjusted_open - 1
+        if not math.isfinite(target):
+            raise QualityError("invalid_target_return")
+        labels.append(
+            {
+                **feature,
+                "as_of_session": session,
+                "target_session": next_session,
+                "target_return": target,
+                "label_ready": True,
+            }
+        )
+    return labels

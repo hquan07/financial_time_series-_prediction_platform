@@ -5,7 +5,11 @@ from uuid import uuid4
 
 import pandas as pd
 
-from financial_time_series.features.compute import build_rows, select_macro
+from financial_time_series.features.compute import (
+    build_rows,
+    build_training_rows,
+    select_macro,
+)
 
 
 def market_rows(count=45, ticker="AAPL"):
@@ -72,3 +76,20 @@ def test_macro_selects_observation_date_then_revision_and_ignores_future():
     chosen = select_macro(rows, "VIXCLS", date(2024, 1, 10), now)
     assert chosen.source_run_id == "b"
     assert pd.isna(chosen.value)
+
+
+def test_training_uses_published_feature_rows_and_exact_next_session():
+    rows = market_rows()
+    features, original = build_rows(rows, [])
+    rebuilt = build_training_rows(features, rows)
+    assert [(row["as_of_session"], row["target_session"]) for row in rebuilt] == [
+        (row["as_of_session"], row["target_session"]) for row in original
+    ]
+    assert all(
+        row["target_return"] == original[index]["target_return"]
+        for index, row in enumerate(rebuilt)
+    )
+    assert all(
+        row["source_run_id"] == original[index]["source_run_id"]
+        for index, row in enumerate(rebuilt)
+    )

@@ -8,12 +8,15 @@ certifi==2026.10.23
 cffi==2.1.1
 charset-normalizer==3.5.2
 comm==0.2.3
+contourpy==1.4.0
 coverage==7.17.1
 curl_cffi==0.17.0
+cycler==0.12.1
 debugpy==1.8.22
 exchange_calendars==4.13.2
 executing==2.3.0
 fastjsonschema==2.22.3
+fonttools==4.68.0
 frozendict==2.5.1
 idna==3.20
 iniconfig==2.3.1
@@ -25,7 +28,9 @@ jsonschema==4.26.0
 jsonschema-specifications==2025.9.1
 jupyter_client==8.10.0
 jupyter_core==5.9.1
+kiwisolver==1.5.1
 korean_lunar_calendar==0.4.0
+matplotlib==3.10.7
 matplotlib-inline==0.2.2
 minio==7.2.20
 multitasking==0.0.13
@@ -40,6 +45,7 @@ pandera==0.35.0
 parso==0.8.7
 peewee==4.5.3
 pexpect==4.9.0
+pillow==13.0.0
 platformdirs==4.14.3
 pluggy==1.7.0
 prompt_toolkit==3.0.53
@@ -57,6 +63,7 @@ pydantic-settings==2.16.2
 pydantic_core==2.50.2
 Pygments==2.21.0
 pyluach==2.3.0
+pyparsing==3.3.3
 pytest==9.2.0
 pytest-cov==7.1.0
 python-dateutil==4.0.0

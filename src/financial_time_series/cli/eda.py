@@ -6,9 +6,12 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
+import matplotlib
 import nbformat
 import pandas as pd
 from nbclient import NotebookClient
+
+matplotlib.use("Agg")
 
 from financial_time_series.features.gold_service import GoldService
 from financial_time_series.ingestion.service import code_revision
@@ -48,6 +51,8 @@ def run_report(
     *,
     synthetic: bool = False,
 ) -> dict:
+    import matplotlib.pyplot as plt
+
     frame = (
         synthetic_frame() if synthetic else load_frame(dataset_name, dataset_version)
     )
@@ -69,14 +74,17 @@ def run_report(
     elif kind == "returns":
         result["return_mean"] = float(returns.mean())
         result["return_std"] = float(returns.std())
-        result["max_drawdown"] = float(
-            (frame.adj_close / frame.adj_close.cummax() - 1).min()
-        )
+        peaks = frame.groupby("ticker").adj_close.cummax()
+        result["max_drawdown"] = float((frame.adj_close / peaks - 1).min())
     elif kind == "correlation":
-        result["close_volume_correlation"] = float(frame.adj_close.corr(frame.volume))
+        result["close_volume_correlation_by_ticker"] = {
+            ticker: float(group.adj_close.corr(group.volume))
+            for ticker, group in frame.groupby("ticker")
+        }
         result["high_volatility_days"] = int((returns.abs() > 0.05).sum())
     elif kind == "indicators":
-        result["sma_20_last"] = float(frame.adj_close.rolling(20).mean().iloc[-1])
+        asset = frame.loc[frame.ticker == frame.ticker.iloc[0]]
+        result["sma_20_last"] = float(asset.adj_close.rolling(20).mean().iloc[-1])
         result["volume_mean"] = float(frame.volume.mean())
     elif kind == "macro":
         result["macro_available_rows"] = (
@@ -98,6 +106,42 @@ def run_report(
         "synthetic": synthetic,
     }
     output_dir.mkdir(parents=True, exist_ok=True)
+    figure, axis = plt.subplots(figsize=(9, 4))
+    if kind == "quality":
+        frame.isna().sum().sort_values(ascending=False).head(15).plot.bar(ax=axis)
+        axis.set_ylabel("Missing rows")
+    elif kind == "returns":
+        returns.dropna().hist(bins=30, ax=axis)
+        axis.set_xlabel("Daily adjusted-close return")
+    elif kind == "correlation":
+        matrix = (
+            frame.assign(returns=returns)
+            .pivot_table(index="session_date", columns="ticker", values="returns")
+            .corr()
+        )
+        result["return_correlations"] = matrix.to_dict()
+        axis.imshow(matrix.to_numpy(), vmin=-1, vmax=1, cmap="coolwarm")
+        axis.set_xticks(range(len(matrix)), matrix.columns, rotation=45)
+        axis.set_yticks(range(len(matrix)), matrix.index)
+    elif kind == "indicators":
+        asset = frame.loc[frame.ticker == frame.ticker.iloc[0]]
+        axis.plot(asset.session_date, asset.adj_close, label="Adjusted close")
+        axis.plot(
+            asset.session_date, asset.adj_close.rolling(20).mean(), label="SMA 20"
+        )
+        axis.legend()
+    else:
+        available = (
+            frame.vix_level.notna()
+            if "vix_level" in frame
+            else pd.Series(False, index=frame.index)
+        )
+        axis.plot(frame.session_date, available.astype(int))
+        axis.set_ylabel("VIX eligible at cutoff")
+    axis.set_title(kind.replace("_", " ").title())
+    figure.tight_layout()
+    figure.savefig(output_dir / f"{kind}.png", dpi=120)
+    plt.close(figure)
     path = output_dir / f"{kind}.json"
     path.write_text(
         json.dumps({"metadata": metadata, "summary": result}, indent=2, sort_keys=True)
