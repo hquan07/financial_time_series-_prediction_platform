@@ -1,6 +1,6 @@
 PYTHON := .venv/bin/python
 
-.PHONY: setup format-check lint test infra-up infra-down migrate ingest backfill reconcile integration-test build-silver silver-integration-test build-gold gold-integration-test notebook-check eda
+.PHONY: setup format-check lint test infra-up infra-down migrate ingest backfill reconcile integration-test build-silver silver-integration-test build-gold gold-integration-test notebook-check eda phase5-test phase5-run phase5-report
 
 COMPOSE := docker compose --project-name financial-ts-phase2 --env-file .env -f infrastructure/docker-compose.yml
 
@@ -58,3 +58,12 @@ notebook-check:
 
 eda:
 	$(PYTHON) -m financial_time_series.cli.eda $(ARGS)
+
+phase5-test:
+	$(PYTHON) -m pytest tests/unit/training tests/integration/test_phase5_training.py --tb=line
+
+phase5-run:
+	$(PYTHON) -m financial_time_series.cli.run_phase5 --gold-training-version $(GOLD_TRAINING_VERSION) --model-config $(MODEL_CONFIG)
+
+phase5-report:
+	@sed -n '1,240p' artifacts/experiments/$(EXPERIMENT_ID)/comparison.md

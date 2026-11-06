@@ -6,7 +6,8 @@ Bronze objects with PostgreSQL run audit and watermarks. Phase 3 validates
 successful Bronze runs and publishes versioned Parquet Silver datasets with
 quality reports and PostgreSQL lineage. Phase 4 builds versioned Gold features
 and next-session labels from explicit Silver versions, with notebook EDA.
-Models and trading remain later-phase work.
+Phase 5 compares fixed price-only model baselines and boosting candidates on
+an explicitly selected Gold training version. Trading remains later-phase work.
 
 ## Local setup
 
@@ -105,6 +106,10 @@ Historical market and macro backfills retain explicit point-in-time readiness
 flags. See [feature contracts](documentation/feature_contracts.md).
 
 ## Architecture and scope
+
+Phase 5 method and local run commands are in
+[modeling documentation](documentation/phase_05_modeling.md). Its experiment
+artifacts are ignored by Git and carry the Gold version and manifest lineage.
 
 The intended pipeline has Bronze source snapshots, Silver validated records,
 and Gold point-in-time feature and target datasets. The package directories

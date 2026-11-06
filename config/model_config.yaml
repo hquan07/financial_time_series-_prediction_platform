@@ -3,3 +3,70 @@ task: next_session_return_regression
 target_contract_version: adj_open_to_close_v1
 validation: chronological_walk_forward
 deployment: research_only
+model_contract_version: price_only_return_models_v1
+dataset_name: training_next_session_return_v1
+dataset_tier: price_only_core_v1
+feature_columns:
+  - return_1d
+  - return_5d
+  - log_return_1d
+  - sma_5
+  - sma_20
+  - ema_12
+  - ema_26
+  - sma_5_to_20
+  - rsi_14
+  - macd
+  - macd_signal
+  - macd_histogram
+  - return_std_5
+  - return_std_20
+  - return_mean_5
+  - return_mean_20
+  - rolling_high_20
+  - rolling_low_20
+  - high_low_range
+  - open_close_return
+  - overnight_gap
+  - atr_14
+  - volume_change
+  - volume_sma_20
+  - relative_volume_20
+  - volume_zscore_20
+  - obv
+seed: 42
+threads: 2
+holdout_fraction: 0.2
+fold_count: 3
+min_train_sessions: 252
+validation_sessions: 63
+selection_metric: pooled_oof_rmse
+linear_regression:
+  fit_intercept: true
+logistic_regression:
+  solver: lbfgs
+  C: 1.0
+  max_iter: 1000
+xgboost_regressor:
+  objective: reg:squarederror
+  tree_method: hist
+  n_estimators: 200
+  max_depth: 3
+  learning_rate: 0.05
+  subsample: 0.8
+  colsample_bytree: 0.8
+  min_child_weight: 5
+  reg_lambda: 10
+lightgbm_regressor:
+  objective: regression
+  n_estimators: 200
+  max_depth: 3
+  num_leaves: 7
+  learning_rate: 0.05
+  min_child_samples: 40
+  subsample: 0.8
+  subsample_freq: 1
+  colsample_bytree: 0.8
+  reg_lambda: 10
+  deterministic: true
+  force_col_wise: true
